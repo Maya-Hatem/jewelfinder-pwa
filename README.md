@@ -1,19 +1,15 @@
 # JewelFinder
 
-JewelFinder is a web-based jewellery comparison platform developed for a dissertation project.  
-It allows users to search, filter, and compare jewellery products within a single interface.
-
----
+Luxury-themed jewellery comparison Progressive Web App (PWA) built using FastAPI and eBay Browse API integration.
 
 ## Features
 
-- Keyword-based search  
-- Category filtering  
-- Price sorting  
-- Structured product display  
-- Prototype image-based search  
-
----
+- Live jewellery search using eBay Browse API
+- Category filtering
+- Price sorting
+- Responsive luxury-themed UI
+- Progressive Web App (PWA) support
+- OAuth-secured API integration
 
 ## How to Run
 
