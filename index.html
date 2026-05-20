@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Compare jewellery listings fast across marketplaces and premium retailers."
+    />
+
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="manifest" href="/static/manifest.json" />
+
+    <meta name="theme-color" content="#1a1410" />
+    <meta name="color-scheme" content="dark" />
+
+    <link rel="icon" href="/static/icon-192.png" />
+    <link rel="apple-touch-icon" href="/static/icon-192.png" />
+
+    <title>JewelFinder</title>
+  </head>
+
+  <body>
+    <div class="page-shell">
+      <div class="ambient ambient-one"></div>
+      <div class="ambient ambient-two"></div>
+
+      <main class="container">
+        <section class="hero section {% if results %}hero-compact{% endif %}">
+          <div class="hero-copy">
+            <div class="eyebrow">Jewellery price comparison</div>
+            <div class="brand">
+              <img src="/static/icon-192.png" alt="JewelFinder logo" />
+              <div>
+                <h1>JewelFinder</h1>
+                <p class="hero-text">
+                  Search once, then compare the strongest deals from eBay and Dan Jewellers in one polished view.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-panel">
+            <div class="stat-card">
+              <span class="stat-label">Built for</span>
+              <strong>rings, necklaces, bracelets and earrings</strong>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Workflow</span>
+              <strong>text search now, image matching ready to grow</strong>
+            </div>
+          </div> 
+        </section>
+
+        {% if message %}
+          <div class="status"><strong>Status:</strong> {{ message }}</div>
+        {% endif %}
+
+        <section class="search-layout">
+          <div class="section search-card">
+            <div class="section-head">
+              <h2>Text Search</h2>
+              <p>Refine your query, pick a jewellery type, and sort by price.</p>
+            </div>
+
+            <form id="textForm" action="/search" method="post" class="stack-form">
+              <label class="field">
+                <span>Search term</span>
+                <input type="text" name="q" placeholder="e.g. 9ct gold signet" value="{{ q or '' }}" />
+              </label>
+
+              <div class="row row-tight">
+                <label class="field compact-field">
+                  <span>Category</span>
+                  <select name="kind">
+                    <option value="" {% if not kind %}selected{% endif %}>Any</option>
+                    <option value="ring" {% if kind == "ring" %}selected{% endif %}>Ring</option>
+                    <option value="necklace" {% if kind == "necklace" %}selected{% endif %}>Necklace</option>
+                    <option value="bracelet" {% if kind == "bracelet" %}selected{% endif %}>Bracelet</option>
+                    <option value="earrings" {% if kind == "earrings" %}selected{% endif %}>Earrings</option>
+                  </select>
+                </label>
+
+                <label class="field compact-field">
+                  <span>Sort by</span>
+                  <select name="sort">
+                    <option value="low" {% if sort != "high" %}selected{% endif %}>Price: Low to High</option>
+                    <option value="high" {% if sort == "high" %}selected{% endif %}>Price: High to Low</option>
+                  </select>
+                </label>
+              </div>
+
+              <button type="submit">Search listings</button>
+            </form>
+          </div>
+
+          <div class="section search-card">
+            <div class="section-head">
+              <h2>Image Search</h2>
+              <p>Upload a reference image to test the matching flow while the visual search feature is taking shape.</p>
+            </div>
+
+            <form id="imageForm" action="/image-search" method="post" enctype="multipart/form-data" class="stack-form">
+              <input type="hidden" name="kind" value="{{ kind or '' }}" />
+              <input type="hidden" name="sort" value="{{ sort or 'low' }}" />
+
+              <input id="imageInput" class="file-hidden" type="file" name="image" accept="image/*" required />
+
+              <div class="upload-box">
+                <button type="button" class="btn-secondary" id="chooseImageBtn">Choose image</button>
+                <span class="file-name" id="fileName">No image selected</span>
+              </div>
+
+              <button type="submit">Upload and search</button>
+            </form>
+          </div>
+        </section>
+
+        {% if results %}
+          <section class="section">
+            <div class="results-head">
+              <div>
+                <h2>Results</h2>
+                <div class="results-sub">
+                  Live results retrieved from eBay and Dan Jewellers, sorted by price
+                  {% if sort == "high" %}
+                    (highest first)
+                  {% else %}
+                    (lowest first)
+                  {% endif %}
+                </div>
+                <div class="results-count">
+                  {{ total_results }} result{% if total_results != 1 %}s{% endif %} found
+                  | {{ ebay_count }} eBay
+                  | {{ dan_count }} Dan Jewellers
+                </div>
+              </div>
+            </div>
+
+            {% if insights %}
+              <div class="insights-grid">
+                <article class="insight-card">
+                  <span class="insight-label">Lowest visible price</span>
+                  <strong class="insight-value">
+                    {% if insights.cheapest_item %}
+                      {% if insights.cheapest_item.currency == "GBP" %}GBP {% elif insights.cheapest_item.currency == "USD" %}USD {% elif insights.cheapest_item.currency == "EUR" %}EUR {% else %}{{ insights.cheapest_item.currency }} {% endif %}
+                      {{ "%.2f"|format(insights.cheapest_item.price) }}
+                    {% else %}
+                      No visible price
+                    {% endif %}
+                  </strong>
+                  <p class="insight-copy">
+                    {% if insights.cheapest_item %}
+                      {{ insights.cheapest_item.retailer }} currently shows the lowest priced match.
+                    {% else %}
+                      Current matches do not include public pricing.
+                    {% endif %}
+                  </p>
+                </article>
+
+                <article class="insight-card">
+                  <span class="insight-label">Priced listings</span>
+                  <strong class="insight-value">{{ insights.priced_count }}</strong>
+                  <p class="insight-copy">Listings with visible pricing that can be compared directly.</p>
+                </article>
+
+                <article class="insight-card">
+                  <span class="insight-label">Trade-only listings</span>
+                  <strong class="insight-value">{{ insights.trade_only_count }}</strong>
+                  <p class="insight-copy">Retailer matches that require login or trade access to reveal price.</p>
+                </article>
+
+                <article class="insight-card">
+                  <span class="insight-label">Retailer highlight</span>
+                  <strong class="insight-value">
+                    {{ insights.strongest_presence or "No retailer data" }}
+                  </strong>
+                  <p class="insight-copy">
+                    {% if insights.strongest_presence %}
+                      Most visible priced matches in this result set.
+                    {% else %}
+                      Add more priced sources to deepen the comparison.
+                    {% endif %}
+                  </p>
+                </article>
+              </div>
+            {% endif %}
+
+            <div class="results-grid">
+              {% for r in results %}
+                <article class="result-card {% if loop.first and sort != 'high' %}best{% endif %}">
+                  {% if r.image_url %}
+                    <img class="thumb" src="{{ r.image_url }}" alt="Item image" />
+                  {% else %}
+                    <div class="thumb thumb-placeholder">No image available</div>
+                  {% endif %}
+
+                  <div class="result-top">
+                    <div class="result-title">
+                      {% if r.link %}
+                        <a href="{{ r.link }}" target="_blank" rel="noopener noreferrer">{{ r.title }}</a>
+                      {% else %}
+                        {{ r.title }}
+                      {% endif %}
+                    </div>
+
+                    {% if loop.first and sort != "high" %}
+                      <span class="badge">Best price</span>
+                    {% endif %}
+                  </div>
+
+                  <div class="result-meta">
+                    <span class="price">
+                      {% if r.price is not none %}
+                        {% if r.currency == "GBP" %}GBP {% elif r.currency == "USD" %}USD {% elif r.currency == "EUR" %}EUR {% else %}{{ r.currency }} {% endif %}
+                        {{ "%.2f"|format(r.price) }}
+                      {% else %}
+                        Trade login required
+                      {% endif %}
+                    </span>
+                    <span class="retailer">{{ r.retailer }}</span>
+                  </div>
+
+                  {% if r.link %}
+                    <div class="result-actions">
+                      <a class="btn-link" href="{{ r.link }}" target="_blank" rel="noopener noreferrer">Open on {{ r.retailer }}</a>
+                    </div>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </div>
+
+            <div class="pagination">
+              {% if page > 1 %}
+                <form action="/search" method="post">
+                  <input type="hidden" name="q" value="{{ q }}" />
+                  <input type="hidden" name="kind" value="{{ kind }}" />
+                  <input type="hidden" name="sort" value="{{ sort }}" />
+                  <input type="hidden" name="page" value="{{ page - 1 }}" />
+                  <button type="submit">Previous</button>
+                </form>
+              {% endif %}
+
+              <span>Page {{ page }} of {{ total_pages }}</span>
+
+              {% if page < total_pages %}
+                <form action="/search" method="post">
+                  <input type="hidden" name="q" value="{{ q }}" />
+                  <input type="hidden" name="kind" value="{{ kind }}" />
+                  <input type="hidden" name="sort" value="{{ sort }}" />
+                  <input type="hidden" name="page" value="{{ page + 1 }}" />
+                  <button type="submit">Next</button>
+                </form>
+              {% endif %}
+            </div>
+          </section>
+        {% endif %}
+      </main>
+    </div>
+
+    <!--
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/static/service-worker.js");
+        });
+      }
+    </script>
+    -->
+
+    <script>
+      function setLoading(formId, buttonText) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        form.addEventListener("submit", () => {
+          const btn = form.querySelector("button[type='submit']");
+          if (!btn) return;
+
+          btn.dataset.original = btn.textContent;
+          btn.textContent = buttonText;
+          btn.disabled = true;
+        });
+      }
+
+      setLoading("textForm", "Searching...");
+      setLoading("imageForm", "Uploading...");
+    </script>
+
+    <script>
+      const imageInput = document.getElementById("imageInput");
+      const chooseBtn = document.getElementById("chooseImageBtn");
+      const fileName = document.getElementById("fileName");
+
+      if (chooseBtn && imageInput && fileName) {
+        chooseBtn.addEventListener("click", () => imageInput.click());
+
+        imageInput.addEventListener("change", () => {
+          fileName.textContent = imageInput.files?.[0]?.name || "No image selected";
+        });
+      }
+    </script>
+  </body>
+</html>
